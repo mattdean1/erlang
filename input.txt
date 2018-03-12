@@ -1,0 +1,7 @@
+p
+p q s
+q p s t r
+r q t
+s p q t u
+t q r u s
+u s t
