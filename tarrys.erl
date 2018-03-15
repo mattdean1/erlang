@@ -23,19 +23,52 @@ createNode(Node, Initiator) ->
 
 isInitiator(Initiator, NodeName) -> Initiator == NodeName.
 
-processCode(Name) ->
+sendToken(OwnPid, Neighbours, Parent, Token, MainPid) ->
+  case Neighbours of
+    [] -> Parent ! {token, OwnPid, Token, MainPid}, [];
+    [Hd | Tl] ->
+      if
+        Hd =:= Parent -> sendToken(OwnPid, Tl, Parent, Token, MainPid);
+        true -> Hd ! {token, OwnPid, Token, MainPid}, Tl
+      end
+  end.
+
+processCode(Name, Neighbours, Parent, MainPid) ->
   receive
-    token ->
-      % Process Operations
+    {neighbours, NeighboursList} ->
+      processCode(Name, NeighboursList, Parent, MainPid);
+    %initiate ->
+      % send token to a random child
+    {token, From, Token, MainPid} ->
+      % utils:print_list(Token),
+      % io:format("~s", [Name]),
+      NewToken = Token ++ [Name],
+      % utils:print_list(NewToken),
+      if
+        % if this is the first time recieving a token
+        Parent =:= null -> processCode(Name, sendToken(self(), Neighbours, From, NewToken, MainPid), From, MainPid);
+        (Parent =:= mainMethod) and (Neighbours =:= []) -> MainPid ! NewToken;
+        true -> processCode(Name, sendToken(self(), Neighbours, Parent, NewToken, MainPid), Parent, MainPid) %clean up
+      end;
+      % Process Operation
       % If Process has no parent -> Populate Parent (Only occurs on the first time this process has been visited)
       % Add proccess name to token string
 
       % If process has a link which it hasn't forwarded previously send forward token there
       % Else forward token onto parent (where parent is the first process that sent the token to the current process)
-      utils:log(Name),
-      io:nl(),
-      processCode(Name);
+      % utils:log(Name),
+      % io:nl(),
+      % processCode(Name, Neighbours);
     _ -> ok
+  end.
+
+findNeighbourPid(RecordList, Name) ->
+  case RecordList of
+    [] -> 0;
+    [Hd | Tl] -> if
+                    Hd#node.name == Name -> Hd#node.pid;
+                    true -> findNeighbourPid(Tl, Name)
+                end
   end.
 
 main() ->
@@ -49,12 +82,27 @@ main() ->
 
   NodeRecords = lists:map(fun(Node) -> createNode(Node, Initiator) end, Nodes),
 
-  NodeRecords2 = lists:map(fun(NR1) ->
-                              Pid = spawn(tarrys, processCode, [NR1#node.name]),
+  NodeRecordsPid = lists:map(fun(NR1) ->
+                              Pid = spawn(tarrys, processCode, [NR1#node.name, [], null, self()]),
                               NR1#node{pid=Pid}
                           end, NodeRecords),
 
-  [Node1 | Rest] = NodeRecords2,
-  Result = Node1#node.pid ! token,
+  [InitiatorNode] = lists:filter(fun(Node) -> Node#node.isInitiator end, NodeRecordsPid),
 
-  NodeRecords2.
+  NodeRecordsNeighbours = lists:map(fun(Node) ->
+                                    Node#node{neighbour_pids=lists:map(fun(Neighbour) ->
+                                                                        findNeighbourPid(NodeRecordsPid, Neighbour)
+                                                                      end, Node#node.neighbours)
+
+                                            } end, NodeRecordsPid),
+
+  lists:foreach((fun(Node) ->
+                  Node#node.pid ! {neighbours, Node#node.neighbour_pids}
+                end), NodeRecordsNeighbours),
+
+  InitiatorNode#node.pid ! {token, mainMethod, [], self()},
+
+
+  receive
+    FinalToken -> utils:print_list(FinalToken)
+  end.
