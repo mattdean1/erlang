@@ -26,6 +26,12 @@ isInitiator(Initiator, NodeName) -> Initiator == NodeName.
 processCode(Name) ->
   receive
     token ->
+      % Process Operations
+      % If Process has no parent -> Populate Parent (Only occurs on the first time this process has been visited)
+      % Add proccess name to token string
+
+      % If process has a link which it hasn't forwarded previously send forward token there
+      % Else forward token onto parent (where parent is the first process that sent the token to the current process)
       utils:log(Name),
       io:nl(),
       processCode(Name);
