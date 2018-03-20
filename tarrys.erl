@@ -3,6 +3,7 @@
 
 -record(node, {name, isInitiator = false, neighbours = [], pid, neighbour_pids = []}).
 
+% Create's each node given a string (equivalent to a line of input)
 createNode(Node, Initiator) ->
   List = string:split(Node, " ", all),
   [NodeName | Links] = List,
@@ -12,6 +13,7 @@ createNode(Node, Initiator) ->
 
 isInitiator(Initiator, NodeName) -> Initiator == NodeName.
 
+% Given a token and a list of neighbours this function handle the logic of sending the token.
 sendToken(OwnPid, Neighbours, Parent, Token, MainPid) ->
   case Neighbours of
     [] -> Parent ! {token, OwnPid, Token, MainPid}, [];
@@ -22,6 +24,7 @@ sendToken(OwnPid, Neighbours, Parent, Token, MainPid) ->
       end
   end.
 
+% Function to be executed inside each process
 processCode(Name, Neighbours, Parent, MainPid) ->
   receive
     {neighbours, NeighboursList} ->
@@ -38,6 +41,7 @@ processCode(Name, Neighbours, Parent, MainPid) ->
     _ -> ok
   end.
 
+% Given a node name this function fetches the pid of the node from a list of node records
 findNeighbourPid(RecordList, Name) ->
   case RecordList of
     [] -> 0;
@@ -47,9 +51,8 @@ findNeighbourPid(RecordList, Name) ->
                 end
   end.
 
-
+% Read In Input until an empty line is met
 getLines(List) ->
-  % Read In Input
   case io:get_line("") of
     "\n" -> List;
     Line  ->
@@ -57,30 +60,36 @@ getLines(List) ->
       getLines(List ++ [Input])
   end.
 
+% Main method that spawns nodes and sends the initiator the token to start Tarrys algorithm
 main() ->
   Input = getLines([]),
 
   [Initiator | Nodes] = Input,
 
   NodeRecords = lists:map(fun(Node) -> createNode(Node, Initiator) end, Nodes),
+
+  % Spawn a process for each node in node records and store the process id along with original records
   NodeRecordsPid = lists:map(fun(NR1) ->
                               Pid = spawn(tarrys, processCode, [NR1#node.name, [], null, self()]),
                               NR1#node{pid=Pid}
                           end, NodeRecords),
 
   [InitiatorNode] = lists:filter(fun(Node) -> Node#node.isInitiator end, NodeRecordsPid),
+
+  % Populate each node record with the pid's of its neighbour pid's
   NodeRecordsNeighbours = lists:map(fun(Node) ->
                                     Node#node{neighbour_pids=lists:map(fun(Neighbour) ->
                                                                         findNeighbourPid(NodeRecordsPid, Neighbour)
                                                                       end, Node#node.neighbours)
                                             } end, NodeRecordsPid),
 
+  % Send each node process the neighbour pids for which it can send tokens onto
   lists:foreach((fun(Node) ->
                   Node#node.pid ! {neighbours, Node#node.neighbour_pids}
                 end), NodeRecordsNeighbours),
 
+  % Send the token to the initiator and begin Tarry's algorithm
   InitiatorNode#node.pid ! {token, mainMethod, [], self()},
-
 
   receive
     FinalToken -> utils:print_list_helper(FinalToken)
