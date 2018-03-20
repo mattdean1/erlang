@@ -20,6 +20,18 @@ print_list(List) ->
 print_list_helper(List) ->
   case List of
     [] -> ok;
-    [Hd | []] -> io:fwrite(" ~p ", [Hd]);
-    [Hd | Tl] -> io:fwrite(" ~p,", [Hd]), print_list_helper(Tl)
+    [Hd | []] -> io:fwrite("~s", [Hd]);
+    [Hd | Tl] -> io:fwrite("~s ", [Hd]), print_list_helper(Tl)
   end.
+
+print_node(Node) ->
+  List = string:split(Node, " ", all),
+  [NodeName | Links] = List,
+  utils:log("Node", NodeName),
+  utils:log(" "),
+  utils:log([" Links: "]),
+  utils:print_list(Links),
+  io:nl().
+
+print_nodes(Nodes) ->
+  lists:foreach(fun(Node) -> print_node(Node), io:nl() end, Nodes).
