@@ -3,6 +3,13 @@
 
 -record(node, {name, isInitiator = false, neighbours = [], pid, neighbour_pids = []}).
 
+print_list(List) ->
+  case List of
+    [] -> ok;
+    [Hd | []] -> io:fwrite("~s", [Hd]);
+    [Hd | Tl] -> io:fwrite("~s ", [Hd]), print_list(Tl)
+  end.
+
 % Create's each node given a string (equivalent to a line of input)
 createNode(Node, Initiator) ->
   List = string:split(Node, " ", all),
@@ -92,6 +99,6 @@ main() ->
   InitiatorNode#node.pid ! {token, mainMethod, [], self()},
 
   receive
-    FinalToken -> utils:print_list_helper(FinalToken)
+    FinalToken -> print_list(FinalToken)
   end,
   ok.
