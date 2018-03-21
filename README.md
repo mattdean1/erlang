@@ -1,8 +1,8 @@
 # An implentation of Tarry's algorithm in Erlang
 
-Compile: `erlc tarrys.erl`
+Compile: `erlc tarry.erl`
 
-Run: `erl -noshell -s tarrys main -eval 'init:stop()'`
+Run: `erl -run tarry -run init stop < input.txt`
 
 ## Tarry's Algorithm
 
