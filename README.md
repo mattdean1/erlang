@@ -2,7 +2,7 @@
 
 Compile: `erlc tarry.erl`
 
-Run: `erl -run tarry -run init stop < input.txt`
+Run: `erl -noshell -run tarry -run init stop < input.txt`
 
 ## Tarry's Algorithm
 
