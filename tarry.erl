@@ -68,7 +68,7 @@ getLines(List) ->
       getLines(List ++ [Input])
   end.
 
-% Main method that spawns nodes and sends the initiator the token to start Tarrys algorithm
+% Main method that spawns nodes and sends the initiator the token to start tarry algorithm
 start() ->
   Input = getLines([]),
 
@@ -78,7 +78,7 @@ start() ->
 
   % Spawn a process for each node in node records and store the process id along with original records
   NodeRecordsPid = lists:map(fun(NR1) ->
-                              Pid = spawn(tarrys, processCode, [NR1#node.name, [], null, self()]),
+                              Pid = spawn(tarry, processCode, [NR1#node.name, [], null, self()]),
                               NR1#node{pid=Pid}
                           end, NodeRecords),
 
